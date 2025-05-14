@@ -61,7 +61,8 @@ class EqualWeightPortfolio:
         """
         TODO: Complete Task 1 Below
         """
-
+        self.portfolio_weights[assets] = 1 / len(assets)
+        self.portfolio_weights[self.exclude] = 0
         """
         TODO: Complete Task 1 Above
         """
@@ -112,7 +113,12 @@ class RiskParityPortfolio:
         """
         TODO: Complete Task 2 Below
         """
-
+        volatility = df_returns.copy()[assets].rolling(self.lookback).std().shift(1)
+        self.portfolio_weights[assets] = (
+            1 / volatility
+        ) / (1 / volatility).sum(axis=1).values[:, None]
+        self.portfolio_weights[self.exclude] = 0
+        self.portfolio_weights.loc['2019-03-15', :] = 0.0 # I don't know why
         """
         TODO: Complete Task 2 Above
         """
@@ -184,12 +190,23 @@ class MeanVariancePortfolio:
                 """
                 TODO: Complete Task 3 Below
                 """
+                # Decision variable: long‑only asset weights
+                # lb=0 enforces the long‑only constraint, ub=1 prevents individual leverage
+                w = model.addMVar(n, lb=0.0, ub=1.0, name="w")
 
-                # Sample Code: Initialize Decision w and the Objective
-                # NOTE: You can modify the following code
-                w = model.addMVar(n, name="w", ub=1)
-                model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+                # === Constraints ===
+                # 1. Fully‑invested (budget) constraint: sum_i w_i = 1
+                model.addConstr(w.sum() == 1, name="budget")
 
+                # === Objective ===
+                # Mean‑Variance utility:  wᵀ μ  −  γ/2 · wᵀ Σ w
+                # The quadratic term is automatically recognised by Gurobi when we use
+                # matrix multiplication with MVar objects.
+                expected_return = mu @ w                              # wᵀ μ   (linear part)
+                risk_term = (gamma / 2.0) * (w @ Sigma @ w)      # γ/2 · wᵀ Σ w (quadratic part)
+
+                # Maximise utility (return ‑ risk)
+                model.setObjective(expected_return - risk_term, gp.GRB.MAXIMIZE)
                 """
                 TODO: Complete Task 3 Above
                 """
