@@ -43,10 +43,8 @@ Strategy Creation
 
 Create your own strategy, you can add parameter but please remain "price" and "exclude" unchanged
 """
-from numpy import ndarray, float64
-from typing import List
-from pandas import Series
-def cum_returns(returns: ndarray | List | Series) -> float64:
+
+def cum_returns(returns):
     """
     Calculate the cumulative returns from a sequence of returns.
     
