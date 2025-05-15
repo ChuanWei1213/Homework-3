@@ -43,18 +43,33 @@ Strategy Creation
 
 Create your own strategy, you can add parameter but please remain "price" and "exclude" unchanged
 """
-
+from numpy import ndarray, float64
+from typing import List
+from pandas import Series
+def cum_returns(returns: ndarray | List | Series) -> float64:
+    """
+    Calculate the cumulative returns from a sequence of returns.
+    
+    Parameters:
+        returns (array-like): Sequence of returns.
+        
+    Returns:
+        float64: Cumulative return value.
+    """
+    returns = np.asarray(returns)
+    return np.prod(returns + 1) - 1
 
 class MyPortfolio:
     """
     NOTE: You can modify the initialization function
     """
 
-    def __init__(self, price, exclude, lookback=50, gamma=0):
+    def __init__(self, price, exclude, lookback=120, step=1, gamma=0):
         self.price = price
         self.returns = price.pct_change().fillna(0)
         self.exclude = exclude
         self.lookback = lookback
+        self.step = step
         self.gamma = gamma
 
     def calculate_weights(self):
@@ -69,7 +84,12 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-
+        rolling_returns = self.returns.rolling(self.lookback, step=self.step).apply(cum_returns).shift(1)
+        pos_returns = rolling_returns.where(rolling_returns > 0, 0) ** 2
+        self.portfolio_weights[assets] = pos_returns[assets].div(
+            pos_returns[assets].sum(axis=1), axis=0
+        )
+        self.portfolio_weights[self.exclude] = 0
         """
         TODO: Complete Task 4 Above
         """
